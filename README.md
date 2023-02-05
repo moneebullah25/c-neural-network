@@ -22,7 +22,8 @@ This implementation includes following activation functions:
 - PReLU(a, x)
 - ELU(a, x)
 - SWISH(x)
-- GELU(x) 
+- GELU(x)
+- SOFTMAX(double *input, unsigned int input_len)
 
 
 You can choose the activation function by passing the name in string format as a parameter to the **ANNForwardPropagate** and **ANNBackwardPropagate** functions.
