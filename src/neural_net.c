@@ -184,7 +184,7 @@ void ANNForwardPropagate(ANN* ann, double const *inputs, double const *outputs,
 	memory_copy(total_error, &error, sizeof(double));
 }
 
-
+/* My Version */
 void ANNBackwardPropagate(ANN* ann, double const *inputs, double const *outputs, double learning_rate, char* activation_func)
 {
 	/* Backpropogate from output neuron to last hidden layer finding pd(E)/pd(Wi)
@@ -255,6 +255,141 @@ void ANNBackwardPropagate(ANN* ann, double const *inputs, double const *outputs,
 		ann->weights[i] = new_weights[i];
 }
 
+
+///* Bing Chat Version */
+//void ANNBackwardPropagate(ANN* ann, double const* inputs, double const* outputs, double learning_rate, char* activation_func)
+//{
+//	// Calculate output layer deltas
+//	for (int i = 0; i < ann->output_neurons_size; i++) {
+//		double error = outputs[i] - ann->out_outputs[i];
+//		ann->deltas[ann->total_neurons - ann->output_neurons_size + i] = error * ActivationFunction(ann->out_outputs[i], 0, activation_func);
+//	}
+//
+//	// Calculate hidden layer deltas
+//	for (int i = ann->hidden_layer_size - 1; i >= 0; i--) {
+//		for (int j = 0; j < ann->hidden_neurons_size; j++) {
+//			double error = 0.0;
+//			if (i == ann->hidden_layer_size - 1) {
+//				for (int k = 0; k < ann->output_neurons_size; k++) {
+//					error += ann->deltas[ann->total_neurons - ann->output_neurons_size + k] * ann->weights[ann->weight_size - ann->output_neurons_size * ann->hidden_neurons_size + k * ann->hidden_neurons_size + j];
+//				}
+//			}
+//			else {
+//				for (int k = 0; k < ann->hidden_neurons_size; k++) {
+//					error += ann->deltas[ann->input_neurons_size + (i + 1) * ann->hidden_neurons_size + k] * ann->weights[ann->input_neurons_size * ann->hidden_neurons_size + (i * ann->hidden_neurons_size + j) * ann->hidden_neurons_size + k];
+//				}
+//			}
+//			int index = ann->input_neurons_size + i * ann->hidden_neurons_size + j;
+//			ann->deltas[index] = error * ActivationFunction(ann->out_hiddens[i][j], 0, activation_func);
+//		}
+//	}
+//
+//	// Update weights and biases
+//	for (int i = 0; i < ann->weight_size; i++) {
+//		int out_index = i / (ann->total_neurons - ann->output_neurons_size);
+//		int in_index = i % (ann->total_neurons - ann->output_neurons_size);
+//		double in_value;
+//		if (in_index < ann->input_neurons_size) {
+//			in_value = inputs[in_index];
+//		}
+//		else if (in_index < ann->input_neurons_size + (ann->hidden_layer_size - 1) * ann->hidden_neurons_size) {
+//			int layer_index = (in_index - ann->input_neurons_size) / ann->hidden_neurons_size;
+//			int neuron_index = (in_index - ann->input_neurons_size) % ann->hidden_neurons_size;
+//			in_value = ann->out_hiddens[layer_index][neuron_index];
+//		}
+//		else {
+//			in_value = ann->in_outputs[in_index - (ann->input_neurons_size + (ann->hidden_layer_size - 1) * ann->hidden_neurons_size)];
+//		}
+//		double out_value;
+//		if (out_index < ann->hidden_neurons_size) {
+//			out_value = ann->out_hiddens[0][out_index];
+//		}
+//		else if (out_index < ann->hidden_neurons_size * ann->hidden_layer_size) {
+//			int layer_index = out_index / ann->hidden_neurons_size - 1;
+//			int neuron_index = out_index % ann->hidden_neurons_size;
+//			out_value = ann->out_hiddens[layer_index + 1][neuron_index];
+//		}
+//		else {
+//			out_value = ann->out_outputs[out_index - ann->hidden_neurons_size * ann->hidden_layer_size];
+//		}
+//		ann->weights[i] += learning_rate * ann->deltas[out_index + ann->input_neurons_size + (ann->hidden_layer_size - 1) * ann->hidden_neurons_size] * in_value;
+//	}
+//	for (int i = 0; i < ann->bias_size; i++) {
+//		int index = i + ann->input_neurons_size + (ann->hidden_layer_size - 1) * ann->hidden_neurons_size;
+//		ann->biases[i] += learning_rate * ann->deltas[index];
+//	}
+//}
+
+// /* ChatGPT Version */  
+//void ANNBackwardPropagate(ANN* ann, double const *inputs, double const *outputs, double learning_rate, char* activation_func)
+//{
+//	/* Backpropogate from output neuron to last hidden layer finding pd(E)/pd(Wi)
+//	:: pd : Partial Derivative, E : Total Error, Wi: Weight at index i */
+//	unsigned int weight_index = ann->weight_size - 1;
+//	unsigned int rel_weight_index = 0;
+//	double* new_weights = (double *)malloc(ann->weight_size*sizeof(double));
+//	ASSERT(new_weights);
+//
+//	// Weight Updation from Output layer to last hidden layer
+//	for (long int i = ann->output_neurons_size - 1; i >= 0; i--)
+//	{
+//		// delta(E_total)/delta(out_output_i)
+//		double dEt_doi = -(outputs[i] - ann->out_outputs[i]);
+//		// delta(out_output_i)/delta(net_output_i)
+//		double doi_dni = ActivationFunction(ann->in_outputs[i], 0, activation_func);
+//
+//		for (long int j = ann->hidden_neurons_size - 1; j >= 0; j--)
+//		{
+//			// delta(E_total)/delta(w_i) = delta(E_total)/delta(out_output_i) * delta(out_output_i)/delta(net_output_i) * out_hidden_j
+//			double dEt_dwi = dEt_doi * doi_dni * ann->out_hiddens[ann->hidden_layer_size - 1][j];
+//			// w_i = w_i - learning_rate * delta(E_total)/delta(w_i)
+//			new_weights[weight_index] = ann->weights[weight_index] - learning_rate * dEt_dwi;
+//			weight_index--;
+//		}
+//	}
+//
+//	/* Backpropogate Hidden Layer Calculations finding pd(E)/pd(Wi)
+//	:: pd : Partial Derivative, E : Total Error, Wi: Weight at index i */
+//	for (long int g = ann->input_neurons_size - 1; g >= 0; g--) {
+//		for (long int h = ann->hidden_layer_size - 1; h >= 0; h--) {
+//			for (long int i = ann->hidden_neurons_size - 1; i >= 0; i--) {
+//				for (long int k = ann->hidden_neurons_size - 1; k >= 0; k--) {
+//						if (h == 0 && ann->hidden_layer_size == 1) // Input to First Hidden Layers
+//					{
+//						double dEt_doi = 0; // delta(E_total)/delta(out_output_i)
+//						for (long int j = ann->output_neurons_size - 1; j >= 0; j--)
+//						{
+//							// delta(E_total)/delta(out_output_i)
+//							double dEt_doutj = -(outputs[j] - ann->out_outputs[j]);
+//							// delta(out_output_i)/delta(net_output_i)
+//							double doutj_dnetj = ActivationFunction(ann->in_outputs[j], 0, activation_func);
+//							// delta(net_output_i)/delta(out_hidden_j)
+//							double dnetj_douthj = ann->weights[(ann->input_neurons_size * ann->hidden_neurons_size) + (i + (j * 2))];
+//							dEt_doi += dEt_doutj * doutj_dnetj * dnetj_douthj;
+//						}
+//						// delta(out_hidden_i)/delta(net_hidden_i)
+//						double doi_dni = ActivationFunction(ann->in_hiddens[h][i], 0, activation_func);
+//						// delta(net_hidden_i)/delta(w_i)
+//						double dni_dwi = ann->inputs[g];
+//						if (h > 1) {
+//							dni_dwi = ActivationFunction(ann->in_hiddens[h - 2][k], 0, activation_func);
+//						}
+//
+//						new_weights[weight_index] = learning_rate * (dEt_doi * doi_dni * dni_dwi * ann->out_hiddens[h - 1][k]);
+//						new_weights[weight_index] = ann->weights[weight_index] - new_weights[weight_index];
+//						weight_index--;
+//					}
+//				}
+//			}
+//		}
+//		for (unsigned int i = 0; i < ann->weight_size; i++) {
+//			ann->weights[i] = new_weights[i];
+//		}
+//
+//		// Free allocated memory
+//		free(new_weights);
+//	}
+//}
 
 double** ANNReadCSV(char* filename, unsigned int* nrows, unsigned int* ncols) {
 	FILE* fp;
