@@ -1,13 +1,7 @@
 #ifndef _NEURAL_NET_HEADER_
 #define _NEURAL_NET_HEADER_
 
-#include <stdlib.h>
-#include <time.h>
-#include "activation_functions.c"
-
 #define RANDMAX 0x7ff
-
-// Default arguments aren't allowed in C
 
 typedef struct {
 	unsigned int input_neurons_size, hidden_neurons_size, hidden_layer_size, output_neurons_size;

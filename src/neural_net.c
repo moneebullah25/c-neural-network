@@ -1,4 +1,8 @@
-#include "neural_net.h"
+#include "../src/activation_functions.c"
+#include "../includes/neural_net.h"
+#include <string.h>
+#include <stdlib.h>
+#include <time.h>
 
 ANN* ANNNew(unsigned int input_neurons_size, unsigned int hidden_neurons_size, 
 	unsigned int hidden_layer_size, unsigned int output_neurons_size)
@@ -34,7 +38,7 @@ ANN* ANNNew(unsigned int input_neurons_size, unsigned int hidden_neurons_size,
 void ANNRandomWeights(ANN* ann, double lower, double upper)
 {
 	ASSERT(ann && (upper > lower));
-	srand(time(NULL));   // Initialization, should only be called once.
+	srand((unsigned int)time(NULL));   // Initialization, should only be called once.
 	for (unsigned int i = 0; i < ann->weight_size; i++)
 	{
 		double randD = lower + (rand() / (double)RAND_MAX) * (upper - lower);
@@ -95,68 +99,91 @@ void* memory_copy(void* dest, const void* src, unsigned int n)
 	return dest;
 }
 
+// Forward propagation of the neural network with input values and activation function
 void ANNForwardPropagate(ANN* ann, double const *inputs, double const *outputs,
 	char* activation_func, double alpha, double* total_error)
 {
+	// Check if ANN and inputs/outputs are defined
 	ASSERT(ann && inputs && outputs && activation_func);
+
+	// Check if activation function is defined in activation_functions.c
 	if (ActivationFunction(1.0, 0.5, activation_func) == -DOUBLE_MAX)
 	{
 		printf("ACTIVATION FUNCTION NOT DEFINED\nPLEASE PROVIDE DEFINATION IN \"activation_functions.c\"\n");
 		return;
 	}
 
-	// Assigning Inputs 
+	// Assigning input values to ANN's input neurons
 	for (unsigned int i = 0; i < ann->input_neurons_size; i++)
 		ann->inputs[i] = inputs[i];
-	// Hidden Layer Calculations
+
+	// Hidden layer calculations
 	unsigned int weight_index = 0;
+
+	// For each hidden layer
 	for (unsigned int h = 0; h < ann->hidden_layer_size; h++){
+
+		// For each neuron in hidden layer
 		for (unsigned int i = 0; i < ann->hidden_neurons_size; i++)
 		{
-			if (h == 0) // Input to First Hidden Layers
-			{ 
+			// If first hidden layer, use input values to calculate weighted sum
+			if (h == 0)
+			{
+				// Weighted sum calculation
 				ann->in_hiddens[h][i] = 0;
 				for (unsigned int j = 0; j < ann->input_neurons_size; j++)
 				{
 					ann->in_hiddens[h][i] += ann->inputs[j] * ann->weights[weight_index++];
 				}
 				ann->in_hiddens[h][i] += ann->biases[h];
+
+				// Activation function calculation
 				ann->out_hiddens[h][i] = ActivationFunction(ann->in_hiddens[h][i], alpha, activation_func);
 			}
-			else // First Hidden Layer to Preceeding Hidden Layer
+			// For subsequent hidden layers, use output values from previous hidden layer to calculate weighted sum
+			else
 			{
+				// Weighted sum calculation
 				ann->in_hiddens[h][i] = 0;
 				for (unsigned int j = 0; j < ann->hidden_neurons_size; j++)
 				{
 					ann->in_hiddens[h][i] += ann->in_hiddens[h - 1][i] * ann->weights[weight_index++];
 				}
 				ann->in_hiddens[h][i] += ann->biases[h];
+
+				// Activation function calculation
 				ann->out_hiddens[h][i] = ActivationFunction(ann->in_hiddens[h][i], alpha, activation_func);
 			}
 		}
 	}
-	// Output Layer Calculations
+
+	// Output layer calculations
 	for (unsigned int i = 0; i < ann->output_neurons_size; i++)
 	{
+		// Weighted sum calculation
 		ann->in_outputs[i] = 0;
 		for (unsigned int j = 0; j < ann->hidden_neurons_size; j++)
 		{
 			ann->in_outputs[i] += ann->out_hiddens[ann->hidden_layer_size - 1][j] * ann->weights[weight_index++];
 		}
 		ann->in_outputs[i] += ann->biases[ann->hidden_layer_size];
+
+		// Activation function calculation
 		ann->out_outputs[i] = ActivationFunction(ann->in_outputs[i], alpha, activation_func);
 	}
+	// Calculation of the error
 	double error = 0;
-	// Calculating Deltas
 	for (unsigned int i = 0; i < ann->output_neurons_size; i++)
 	{
+		// Difference between expected output and actual output
 		ann->deltas[i] = outputs[i] - ann->out_outputs[i];
+		// Squared error
 		error += 0.5*(pow(ann->deltas[i], 2));
 	}
-	// Returning total_error
+	// Updating the total_error pointer with the error value
 	memory_copy(total_error, &error, sizeof(double));
-	
 }
+
 
 void ANNBackwardPropagate(ANN* ann, double const *inputs, double const *outputs, double learning_rate, char* activation_func)
 {
@@ -166,7 +193,7 @@ void ANNBackwardPropagate(ANN* ann, double const *inputs, double const *outputs,
 	unsigned int rel_weight_index = 0;
 	double* new_weights = (double *)malloc(ann->weight_size*sizeof(double));
 	ASSERT(new_weights);
-	
+
 	// Weight Updation from Output layer to last hidden layer
 	for (long int i = ann->output_neurons_size - 1; i >= 0; i--)
 	{
@@ -226,8 +253,6 @@ void ANNBackwardPropagate(ANN* ann, double const *inputs, double const *outputs,
 
 	for (unsigned int i = 0; i < ann->weight_size; i++)
 		ann->weights[i] = new_weights[i];
-
-	return new_weights;
 }
 
 

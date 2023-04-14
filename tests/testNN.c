@@ -1,4 +1,6 @@
-#include "neural_net.h"
+#include "../includes/neural_net.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 int main()
 {
@@ -14,8 +16,10 @@ int main()
 
 		unsigned int epochs = 250;
 		for (unsigned int i = 0; i < epochs; i++) {
-			ANNForwardPropagate(ann, inputs, outputs, "SIGMOID", 0, total_error);
-			ANNBackwardPropagate(ann, inputs, outputs, 0.5, "D_SIGMOID");
+			ANNTrain(ann, inputs, outputs, 0, 0.5, "SIGMOID", "D_SIGMOID", total_error);
+			
+			//ANNForwardPropagate(ann, inputs, outputs, "SIGMOID", 0, total_error);
+			//ANNBackwardPropagate(ann, inputs, outputs, 0.5, "D_SIGMOID");
 
 			printf("Epoch %u/%u\n", i, epochs);
 			printf("1/1 [===============================] - loss: %.9f\n", *total_error);
@@ -68,7 +72,7 @@ int main()
 				ANNTrain(ann, train_feature[i], &train_label[i], 0, 0.0001, "ReLU", "DReLU", &total_error);
 			}
 			printf("Epoch %u/%u\n", epoch, epochs);
-			printf("1/1 [===============================] - loss: %.9f\n", total_error);
+			printf("1/1 [===============================] - loss: %.3f\n", total_error);
 		}
 	}
 
